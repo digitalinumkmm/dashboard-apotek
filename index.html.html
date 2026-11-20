@@ -281,7 +281,7 @@
       <div class="nav-item" data-view="journal-pos"><span class="nav-left">Journal POS (HPP)</span></div>
       <div class="nav-item" data-view="journal-entry"><span class="nav-left">Jurnal Entry</span></div>
       <div class="nav-item" data-view="general-ledger"><span class="nav-left">General Ledger</span></div>
-      <div class="nav-item" data-view="laporan-laba-rugi"><span class="nav-left">Laporan Laba Rugi</span></div> <!-- MENU BARU -->
+      <div class="nav-item" data-view="laporan-laba-rugi"><span class="nav-left">Laporan Laba Rugi</span></div>
     </div>
     <div class="nav-group">
       <div class="nav-group-title">Pengaturan</div>
@@ -693,7 +693,7 @@
       </div>
     </section>
 
-    <!-- LAPORAN LABA RUGI (PROFIT & LOSS MODUL BARU) -->
+    <!-- LAPORAN LABA RUGI -->
     <section class="view" id="view-laporan-laba-rugi">
       <div class="page-head">
         <div class="page-title">Laporan Laba Rugi (Profit & Loss Statement)</div>
@@ -813,6 +813,9 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// URL GOOGLE APPS SCRIPT KLIEN (DISAMBUNGKAN LANGSUNG)
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyUCZZSkmsKAp1dnoRkJ7ntxcjbNqetCg2X6tt4SUaSCjcMzGTkZ5rSHqXD8b7GIhlwcg/exec";
+
 // DATABASE STATE & LOGIKA AUTENTIKASI
 let apotekProfile = JSON.parse(localStorage.getItem('apt16_profile')) || {
   nama: 'Apotek Sehat Pharma', telp: '(021) 555-7890', sipa: 'SIPA: 449/B.12/2026', alamat: 'Jl. Health Care No. 123, Jakarta'
@@ -871,7 +874,26 @@ let activeGenericPrintHtml = '';
 let activeReceiptData = null;
 let currentActivePOForModal = null;
 
+// FUNGSI SIMPAN AUTOMATIS KE LOCALSTORAGE & GOOGLE SHEETS
 function saveData(){
+  const fullData = {
+    profile: apotekProfile,
+    users: userList,
+    accountGroups: accountGroups,
+    accounts: masterAccounts,
+    suppliers: suppliers,
+    products: masterProduk,
+    sales: salesInvoices,
+    po: purchaseOrders,
+    pr: purchaseReceipts,
+    pi: purchaseInvoices,
+    payments: paymentEntries,
+    journals: journalEntries,
+    expenses: expenseEntries,
+    audit: auditLogs
+  };
+
+  // 1. Simpan di LocalStorage HP/Laptop Kasir
   localStorage.setItem('apt16_profile', JSON.stringify(apotekProfile));
   localStorage.setItem('apt16_users', JSON.stringify(userList));
   localStorage.setItem('apt16_session', JSON.stringify(currentUserSession));
@@ -888,6 +910,46 @@ function saveData(){
   localStorage.setItem('apt16_journals', JSON.stringify(journalEntries));
   localStorage.setItem('apt16_expenses', JSON.stringify(expenseEntries));
   localStorage.setItem('apt16_audit', JSON.stringify(auditLogs));
+
+  // 2. OTOMATIS SYNC KE GOOGLE SHEETS CLOUD (BACKGROUND REAL-TIME)
+  if(GOOGLE_SHEETS_API_URL && GOOGLE_SHEETS_API_URL !== ""){
+    fetch(GOOGLE_SHEETS_API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fullData)
+    }).then(() => console.log("Berhasil tersinkronisasi ke Google Sheets!"))
+      .catch(err => console.error("Gagal sync Google Sheets:", err));
+  }
+}
+
+// FUNGSI AMBIL DATA OTOMATIS DARI GOOGLE SHEETS SAAT APLIKASI DIBUKA
+function loadDataFromGoogleSheets(){
+  if(!GOOGLE_SHEETS_API_URL) return;
+  
+  fetch(GOOGLE_SHEETS_API_URL)
+    .then(res => res.json())
+    .then(data => {
+      if(data && data.products){
+        apotekProfile = data.profile || apotekProfile;
+        userList = data.users || userList;
+        accountGroups = data.accountGroups || accountGroups;
+        masterAccounts = data.accounts || masterAccounts;
+        suppliers = data.suppliers || suppliers;
+        masterProduk = data.products || masterProduk;
+        salesInvoices = data.sales || salesInvoices;
+        purchaseOrders = data.po || purchaseOrders;
+        purchaseReceipts = data.pr || purchaseReceipts;
+        purchaseInvoices = data.pi || purchaseInvoices;
+        paymentEntries = data.payments || paymentEntries;
+        journalEntries = data.journals || journalEntries;
+        expenseEntries = data.expenses || expenseEntries;
+        auditLogs = data.audit || auditLogs;
+
+        refreshAll();
+        console.log("Data berhasil dimuat dari Cloud Google Sheets!");
+      }
+    }).catch(err => console.log("Menggunakan LocalStorage offline mode"));
 }
 
 function fmtRp(n){ return 'Rp ' + (n||0).toLocaleString('id-ID'); }
@@ -986,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById(id)) document.getElementById(id).value = todayStr;
   });
 
+  loadDataFromGoogleSheets();
   initSessionView();
 });
 
@@ -2003,7 +2066,7 @@ function exportGLPDF(){
   doc.save("General_Ledger.pdf");
 }
 
-// MODUL LAPORAN LABA RUGI (PROFIT & LOSS - DIPERBAIKI TYPO TEKS)
+// MODUL LAPORAN LABA RUGI (PROFIT & LOSS)
 function renderProfitLoss(){
   const startDate = document.getElementById('pl-start-date')?.value;
   const endDate = document.getElementById('pl-end-date')?.value;
@@ -2046,7 +2109,7 @@ function renderProfitLoss(){
 
   const netProfit = grossProfit - totalExpenses;
 
-  // 3. Render Tabel Laba Rugi dengan Teks yang Sudah Benar
+  // 3. Render Tabel Laba Rugi
   const tbody = document.getElementById('plTableBody');
   tbody.innerHTML = `
     <!-- SEKSI PENDAPATAN -->
