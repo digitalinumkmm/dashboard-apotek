@@ -814,7 +814,62 @@
 
 <script>
 // URL GOOGLE APPS SCRIPT KLIEN TERBARU
+// URL DEPLOYMENT BARU DARI SCREENSHOT TERAKHIR
 const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbw1pWTJCQFaI8jEdGMblhkyw1iSsztrIF4Ye8UIZmWSvKs7rtEalmks-5cSI5zcc8SnDw/exec";
+
+function saveData(){
+  const fullData = {
+    profile: apotekProfile,
+    users: userList,
+    accountGroups: accountGroups,
+    accounts: masterAccounts,
+    suppliers: suppliers,
+    products: masterProduk,
+    sales: salesInvoices,
+    po: purchaseOrders,
+    pr: purchaseReceipts,
+    pi: purchaseInvoices,
+    payments: paymentEntries,
+    journals: journalEntries,
+    expenses: expenseEntries,
+    audit: auditLogs
+  };
+
+  // 1. Simpan di LocalStorage Perangkat Kasir
+  localStorage.setItem('apt16_profile', JSON.stringify(apotekProfile));
+  localStorage.setItem('apt16_users', JSON.stringify(userList));
+  localStorage.setItem('apt16_session', JSON.stringify(currentUserSession));
+  localStorage.setItem('apt16_account_groups', JSON.stringify(accountGroups));
+  localStorage.setItem('apt16_accounts', JSON.stringify(masterAccounts));
+  localStorage.setItem('apt16_shifts', JSON.stringify(shifts));
+  localStorage.setItem('apt16_suppliers', JSON.stringify(suppliers));
+  localStorage.setItem('apt16_master_produk', JSON.stringify(masterProduk));
+  localStorage.setItem('apt16_sales', JSON.stringify(salesInvoices));
+  localStorage.setItem('apt16_po', JSON.stringify(purchaseOrders));
+  localStorage.setItem('apt16_pr', JSON.stringify(purchaseReceipts));
+  localStorage.setItem('apt16_pi', JSON.stringify(purchaseInvoices));
+  localStorage.setItem('apt16_payments', JSON.stringify(paymentEntries));
+  localStorage.setItem('apt16_journals', JSON.stringify(journalEntries));
+  localStorage.setItem('apt16_expenses', JSON.stringify(expenseEntries));
+  localStorage.setItem('apt16_audit', JSON.stringify(auditLogs));
+
+  // 2. Kirim Otomatis ke Google Sheets Cloud (Menggunakan mode no-cors & text/plain agar tidak diblokir browser)
+  if(GOOGLE_SHEETS_API_URL && GOOGLE_SHEETS_API_URL !== ""){
+    fetch(GOOGLE_SHEETS_API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(fullData)
+    })
+    .then(() => {
+      console.log("Sinyal pengiriman data ke Google Sheets terkirim!");
+      showToast("Data tersimpan ke Cloud!");
+    })
+    .catch(err => {
+      console.error("Gagal sync ke Google Sheets:", err);
+    });
+  }
+}
 
 // DATABASE STATE & LOGIKA AUTENTIKASI
 let apotekProfile = JSON.parse(localStorage.getItem('apt16_profile')) || {
