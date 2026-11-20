@@ -814,8 +814,7 @@
 
 <script>
 // URL GOOGLE APPS SCRIPT KLIEN (DISAMBUNGKAN LANGSUNG)
-const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyUCZZSkmsKAp1dnoRkJ7ntxcjbNqetCg2X6tt4SUaSCjcMzGTkZ5rSHqXD8b7GIhlwcg/exec";
-
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbz_7Iqd_x5jJGLzZRwPTKjtosQvPIuYJwfWNUNvLDkSvudKCbuglRqpME5xeGP8nBrsRw/exec";
 // DATABASE STATE & LOGIKA AUTENTIKASI
 let apotekProfile = JSON.parse(localStorage.getItem('apt16_profile')) || {
   nama: 'Apotek Sehat Pharma', telp: '(021) 555-7890', sipa: 'SIPA: 449/B.12/2026', alamat: 'Jl. Health Care No. 123, Jakarta'
@@ -892,6 +891,42 @@ function saveData(){
     expenses: expenseEntries,
     audit: auditLogs
   };
+
+  // 1. Simpan di LocalStorage HP/Laptop Kasir
+  localStorage.setItem('apt16_profile', JSON.stringify(apotekProfile));
+  localStorage.setItem('apt16_users', JSON.stringify(userList));
+  localStorage.setItem('apt16_session', JSON.stringify(currentUserSession));
+  localStorage.setItem('apt16_account_groups', JSON.stringify(accountGroups));
+  localStorage.setItem('apt16_accounts', JSON.stringify(masterAccounts));
+  localStorage.setItem('apt16_shifts', JSON.stringify(shifts));
+  localStorage.setItem('apt16_suppliers', JSON.stringify(suppliers));
+  localStorage.setItem('apt16_master_produk', JSON.stringify(masterProduk));
+  localStorage.setItem('apt16_sales', JSON.stringify(salesInvoices));
+  localStorage.setItem('apt16_po', JSON.stringify(purchaseOrders));
+  localStorage.setItem('apt16_pr', JSON.stringify(purchaseReceipts));
+  localStorage.setItem('apt16_pi', JSON.stringify(purchaseInvoices));
+  localStorage.setItem('apt16_payments', JSON.stringify(paymentEntries));
+  localStorage.setItem('apt16_journals', JSON.stringify(journalEntries));
+  localStorage.setItem('apt16_expenses', JSON.stringify(expenseEntries));
+  localStorage.setItem('apt16_audit', JSON.stringify(auditLogs));
+
+  // 2. OTOMATIS SYNC KE GOOGLE SHEETS CLOUD (BACKGROUND REAL-TIME)
+  if(GOOGLE_SHEETS_API_URL && GOOGLE_SHEETS_API_URL !== ""){
+    fetch(GOOGLE_SHEETS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(fullData)
+    })
+    .then(res => res.json())
+    .then(resData => {
+      console.log("Response dari Google Sheets:", resData);
+      showToast("Data tersimpan ke Cloud!");
+    })
+    .catch(err => {
+      console.error("Gagal sync ke Google Sheets:", err);
+    });
+  }
+}
 
   // 1. Simpan di LocalStorage HP/Laptop Kasir
   localStorage.setItem('apt16_profile', JSON.stringify(apotekProfile));
